@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sudoku — Flask Edition</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <h1>Sudoku</h1>
+      <button id="theme-toggle" class="btn btn-icon" aria-label="Toggle dark mode">
+        <span class="theme-icon">🌙</span>
+      </button>
+    </header>
+
+    <!-- Control bar -->
+    <section class="controls" aria-label="Game controls">
+      <label class="control-group">
+        <span>Difficulty</span>
+        <select id="difficulty" class="select">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </label>
+
+      <button id="new-game" class="btn btn-primary">New Game</button>
+      <button id="hint-btn" class="btn">Hint</button>
+      <button id="check-btn" class="btn">Check</button>
+
+      <div class="status-group">
+        <span class="stat">⏱ <span id="timer">00:00</span></span>
+        <span class="stat">💡 Hints: <span id="hint-count">0</span></span>
+      </div>
+    </section>
+
+    <!-- Message area for errors / info -->
+    <div id="message" class="message" role="alert" aria-live="polite"></div>
+
+    <!-- The board -->
+    <main>
+      <div id="board" class="board" role="grid" aria-label="Sudoku board"></div>
+    </main>
+
+    <!-- Number pad for mobile-friendly input -->
+    <section class="numpad" aria-label="Number input">
+      {% for n in range(1, 10) %}
+      <button class="btn numpad-btn" data-num="{{ n }}">{{ n }}</button>
+      {% endfor %}
+      <button class="btn numpad-btn numpad-erase" data-num="0">⌫</button>
+    </section>
+
+    <!-- Top 10 leaderboard -->
+    <section class="leaderboard" aria-label="Top 10 scores">
+      <h2>Top 10</h2>
+      <ol id="top10" class="top10-list"></ol>
+      <button id="clear-scores" class="btn btn-small">Clear Scores</button>
+    </section>
+  </div>
+
+  <!-- Name prompt modal -->
+  <div id="win-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <h2>🎉 Solved!</h2>
+      <p id="win-details"></p>
+      <label class="control-group">
+        <span>Enter your name for the leaderboard:</span>
+        <input id="player-name" class="input" type="text" maxlength="20" placeholder="Your name" />
+      </label>
+      <div class="modal-actions">
+        <button id="save-score" class="btn btn-primary">Save Score</button>
+        <button id="skip-score" class="btn">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/sudoku.js') }}"></script>
+</body>
+</html>
