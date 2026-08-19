@@ -286,7 +286,21 @@
   function loadTop10() {
     try {
       const raw = localStorage.getItem(TOP10_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const entries = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(entries)) return [];
+      const normalized = entries
+        .filter(
+          (entry) =>
+            entry &&
+            typeof entry.name === "string" &&
+            Number.isFinite(entry.time) &&
+            typeof entry.difficulty === "string" &&
+            Number.isFinite(entry.hints)
+        )
+        .sort((a, b) => a.time - b.time)
+        .slice(0, 10);
+      if (raw !== JSON.stringify(normalized)) saveTop10(normalized);
+      return normalized;
     } catch {
       return [];
     }

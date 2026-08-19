@@ -69,6 +69,23 @@ def test_check_board_finds_wrong_cells():
                 return
 
 
+def test_check_board_ignores_empty_and_correct_cells():
+    result = generate_puzzle("easy")
+    board = [row[:] for row in result["puzzle"]]
+
+    assert check_board(board, result["solution"]) == []
+
+    empty_cell = next(
+        (r, c)
+        for r in range(9)
+        for c in range(9)
+        if result["puzzle"][r][c] == 0
+    )
+    row, col = empty_cell
+    board[row][col] = result["solution"][row][col]
+    assert check_board(board, result["solution"]) == []
+
+
 def test_find_hint_returns_correct_value():
     result = generate_puzzle("easy")
     hint = find_hint(result["puzzle"], result["solution"])
@@ -80,6 +97,20 @@ def test_find_hint_returns_correct_value():
 def test_invalid_difficulty_raises():
     with pytest.raises(ValueError):
         generate_puzzle("impossible")
+
+
+def test_solve_board_returns_none_for_unsolvable_board():
+    board = [[0] * 9 for _ in range(9)]
+    board[0][:8] = range(1, 9)
+    board[1][8] = 9
+
+    assert solve_board(board) is None
+
+
+def test_find_hint_returns_none_for_complete_board():
+    result = generate_puzzle("easy")
+
+    assert find_hint(result["solution"], result["solution"]) is None
 
 
 # ---------------------------------------------------------------
@@ -102,13 +133,77 @@ def test_api_new_valid(client):
     resp = client.post("/api/new", json={"difficulty": "easy"})
     assert resp.status_code == 200
     data = resp.get_json()
-    assert "puzzle" in data and "solution" in data
+    assert data["difficulty"] == "easy"
+    assert len(data["puzzle"]) == 9
+    assert len(data["solution"]) == 9
+    assert all(len(row) == 9 for row in data["puzzle"])
+    assert all(len(row) == 9 for row in data["solution"])
+
+
+def test_api_new_defaults_to_easy(client):
+    resp = client.post("/api/new", json={})
+
+    assert resp.status_code == 200
+    assert resp.get_json()["difficulty"] == "easy"
 
 
 def test_api_new_invalid_difficulty(client):
     resp = client.post("/api/new", json={"difficulty": "nope"})
     assert resp.status_code == 400
     assert "error" in resp.get_json()
+
+
+def test_api_hint_returns_empty_cell_from_solution(client):
+    result = generate_puzzle("easy")
+    resp = client.post(
+        "/api/hint",
+        json={"board": result["puzzle"], "solution": result["solution"]},
+    )
+
+    assert resp.status_code == 200
+    hint = resp.get_json()
+    assert 0 <= hint["row"] < 9
+    assert 0 <= hint["col"] < 9
+    assert result["puzzle"][hint["row"]][hint["col"]] == 0
+    assert hint["value"] == result["solution"][hint["row"]][hint["col"]]
+
+
+def test_api_hint_rejects_complete_board(client):
+    result = generate_puzzle("easy")
+    resp = client.post(
+        "/api/hint",
+        json={"board": result["solution"], "solution": result["solution"]},
+    )
+
+    assert resp.status_code == 400
+    assert resp.get_json()["error"] == "Board is already complete."
+
+
+def test_api_check_returns_wrong_cells(client):
+    result = generate_puzzle("easy")
+    board = [row[:] for row in result["solution"]]
+    row, col = next(
+        (r, c)
+        for r in range(9)
+        for c in range(9)
+        if result["solution"][r][c] != 1
+    )
+    board[row][col] = (result["solution"][row][col] % 9) + 1
+
+    resp = client.post(
+        "/api/check", json={"board": board, "solution": result["solution"]}
+    )
+
+    assert resp.status_code == 200
+    assert resp.get_json()["conflicts"] == [[row, col]]
+
+
+@pytest.mark.parametrize("endpoint", ["/api/hint", "/api/check"])
+def test_api_rejects_malformed_grids(client, endpoint):
+    resp = client.post(endpoint, json={"board": [[0]], "solution": [[0]]})
+
+    assert resp.status_code == 400
+    assert "9x9 grid" in resp.get_json()["error"]
 
 
 def test_api_check_malformed(client):
