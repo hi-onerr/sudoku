@@ -33,6 +33,15 @@ def test_generated_puzzle_has_unique_solution(difficulty):
 
 
 @pytest.mark.parametrize("difficulty", ["easy", "medium", "hard"])
+def test_repeated_generation_keeps_single_solution_for_each_difficulty(difficulty):
+    """Generate several puzzles per difficulty and verify each has exactly one solution."""
+    for _ in range(10):
+        result = generate_puzzle(difficulty)
+        puzzle = [row[:] for row in result["puzzle"]]
+        assert count_solutions(puzzle, limit=2) == 1
+
+
+@pytest.mark.parametrize("difficulty", ["easy", "medium", "hard"])
 def test_given_count_matches_difficulty(difficulty):
     """The number of prefilled cells should match the difficulty target."""
     result = generate_puzzle(difficulty)
